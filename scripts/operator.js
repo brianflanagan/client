@@ -31,7 +31,7 @@ function Operator(el)
       this.hint_el.innerHTML = this.find_portal_with_key(key);
     }
     else{
-      this.hint_el.innerHTML = chars+"C "+words+"W";  
+      this.hint_el.innerHTML = chars+"C "+words+"W";
     }
   }
 
@@ -91,7 +91,7 @@ function Operator(el)
       // execute the regex & get the first matching group (i.e. no @, only the name)
       name = r.operator.name_pattern.exec(name)[1]
       if(r.feed.portals[name]){
-        data.target = r.feed.portals[name].dat;  
+        data.target = r.feed.portals[name].dat;
       }
     }
     r.portal.add_entry(new Entry(data));
@@ -106,7 +106,7 @@ function Operator(el)
       r.portal.data.desc = p;
     }
     else if(option == "site"){
-      r.portal.data.site = p;
+      r.portal.data.site = r.operator.validate_site(p);
     }
     else{
       r.portal.data.feed[option].message = p;
@@ -141,16 +141,41 @@ function Operator(el)
   {
     var path = "dat:"+option;
     if(r.portal.data.dat == path){ return; }
+    // resolve dns shortnames to their actual dat:// URIs
+    DatArchive.resolveName(path).then(function(result) {
+        path = "dat://" + result + "/";
 
-    // Remove
-    if(r.portal.data.port.indexOf(path) == -1){
-      r.portal.data.port.push(path);
-    }
+        // Remove
+        if(r.portal.data.port.indexOf(path) == -1){
+          r.portal.data.port.push(path);
+        }
 
-    r.portal.save();
-    r.portal.update();
-    r.feed.update();
+        r.portal.save();
+        r.portal.update();
+        r.feed.update();
+    }).catch(function(e) { console.error("Error when resolving added portal in operator.js", e) })
   }
+
+    this.commands.fix_port = function() {
+        var promises = r.portal.data.port.map(function(portal) {
+            return new Promise(function(resolve, reject) {
+                console.log("first promise")
+                if(portal.slice(-1) !== "/") { portal += "/" }
+                if(r.portal.data.dat == portal){ return; }
+                // resolve dns shortnames to their actual dat:// URIs
+                DatArchive.resolveName(portal).then(function(result) {
+                    result = "dat://" + result + "/";
+                    resolve(result);
+                }).catch(function(e) { console.error("Error when resolving in fix_port:operator.js", e, portal); resolve(portal) })
+            })
+        })
+        Promise.all(promises).then(function(fixed_ports) {
+            r.portal.data.port = fixed_ports;
+            r.portal.save();
+        }).catch(function(e) {
+            console.error("Error when fixing ports; probably offline or malformed json", e)
+        })
+    }
 
   this.commands.delete = function(p,option)
   {
@@ -176,6 +201,8 @@ function Operator(el)
 
   this.key_down = function(e)
   {
+    //console.log(e);
+
     if(e.key == "Enter"){
       r.operator.validate();
     }
@@ -248,7 +275,7 @@ function Operator(el)
           await archive.writeFile('/media/content/' + file.name, result);
           await archive.commit();
 
-          var commanderText = 'text_goes_here >> ' + file.name 
+          var commanderText = 'text_goes_here >> ' + file.name
           // if there's  already a message written, append ">> file.name" to it
           if (r.operator.input_el.value) {
               commanderText = r.operator.input_el.value.trim() + " >> " + file.name;
@@ -259,6 +286,19 @@ function Operator(el)
       }
     }
     r.operator.drag(false);
+  }
+
+  this.validate_site = function(s)
+  {
+    if(s)
+    {
+        //strip trailing slash
+      s = s.replace(/\/$/, '');
+        //does it have no http/https/dat? default to http
+      var has_valid_protocol = s.match(/(^(?:https?:)|(^dat:)){1}/gi);
+      if(!has_valid_protocol) s = "http://"+s;
+    }
+    return s;
   }
 }
 

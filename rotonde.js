@@ -17,14 +17,17 @@ function Rotonde(client_url)
       var name = this.requirements.style[id];
       this.install_style(name);
     }
+    this.install_style("custom", true);
   }
 
-  this.install_style = function(name)
+  this.install_style = function(name, is_user_side)
   {
+    var href = "links/"+name+'.css';
+    if(!is_user_side) href = this.client_url+href;
     var s = document.createElement('link');
     s.rel = 'stylesheet';
     s.type = 'text/css';
-    s.href = this.client_url+"links/"+name+'.css';
+    s.href = href;
     document.getElementsByTagName('head')[0].appendChild(s);
   }
 
@@ -97,6 +100,11 @@ function Rotonde(client_url)
 
     try {
       portal_data = JSON.parse(portal_str);      
+      // append slash to port entry so that .indexOf works correctly in other parts
+      portal_data.port = portal_data.port.map(function(portal_entry) {
+        if (portal_entry.slice(-1) !== "/") { portal_entry += "/";}
+        return portal_entry
+      })
     } catch (err) {
       console.error("Malformed JSON in portal.json")
     }
@@ -110,10 +118,12 @@ function Rotonde(client_url)
     }
   }
 
-  this.create_portal = function()
+  this.create_portal = async function(name = "new_name")
   {
-    console.log("Create portal");
-    return {name: "new_name",desc: "new_desc",port:[window.location.toString()],feed:[],site:"",dat:""};
+    var archive = new DatArchive(window.location.toString())
+    var portal_str = await r.portal.archive.readFile('/dat.json');
+    var name = JSON.parse(portal_str).title.replace(/\W/g, '');
+    return {name: name,desc: "new_desc",port:[],feed:[],site:"",dat:""}
   }
 
   this.load_feed = async function(feed)
@@ -127,12 +137,20 @@ function Rotonde(client_url)
     if(!e.target.getAttribute("data-operation")){ return; }
     e.preventDefault();
     r.operator.inject(e.target.getAttribute("data-operation"));
+    window.scrollTo(0, 0);
   }
 
   this.reset = function()
   {
-    this.portal.data = {name:"Newly Joined",desc:"Click on this text to edit your description.",site:"Anywhere",port:[],feed:[]};
+    this.reset_with_name();
+  }
+
+  this.reset_with_name = async function()
+  {
+    var archive = new DatArchive(window.location.toString())
+    var portal_str = await r.portal.archive.readFile('/dat.json');
+    var name = JSON.parse(portal_str).title.replace(/\W/g, '');
+    this.portal.data = {name: name,desc: "new_desc",port:[],feed:[],site:"",dat:""}
     this.portal.save();
-    console.log(this.portal.data)
   }
 }

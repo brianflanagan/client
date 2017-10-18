@@ -19,7 +19,7 @@ function Entry(data)
   {
     var html = "";
 
-    html += "<a href='"+this.dat+"'><img class='icon' src='"+this.dat+"/content/icon.svg'></a>";
+    html += "<a href='"+this.dat+"'><img class='icon' src='"+this.dat+"/media/content/icon.svg'></a>";
 
     html += "<t class='portal'><a href='"+this.dat+"'>"+(this.seed ? "@" : "~")+this.portal+"</a>"+(this.target ? " > <a href='"+this.target+"'>"+("@"+r.operator.name_pattern.exec(this.message)[1])+"</a>" : "")+"</t>";
 
@@ -27,7 +27,7 @@ function Entry(data)
       html += this.editstamp ? "<c class='editstamp' data-operation='"+('edit:'+this.id+' '+this.message.replace("'",""))+"'>edited "+timeSince(this.editstamp)+" ago</c>" : "<c class='timestamp' data-operation='edit:"+this.id+" "+this.message.replace("'","")+"'>"+timeSince(this.timestamp)+" ago</c>";
     }
     else{
-      html += this.editstamp ? "<c class='editstamp' data-operation='"+this.portal+": '>edited "+timeSince(this.editstamp)+" ago</c>" : "<c class='timestamp' data-operation='"+this.portal+": '>"+timeSince(this.timestamp)+" ago</c>";
+      html += this.editstamp ? "<c class='editstamp' data-operation='@"+this.portal+": '>edited "+timeSince(this.editstamp)+" ago</c>" : "<c class='timestamp' data-operation='@"+this.portal+": '>"+timeSince(this.timestamp)+" ago</c>";
     }
     html += "<hr />";
     html += "<t class='message' dir='auto'>"+(this.formatter(this.message))+"</t><br/>";

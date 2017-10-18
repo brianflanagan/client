@@ -62,7 +62,6 @@ function Feed(feed_urls)
   {
     var feed_html = "";
     for(name in r.feed.portals){
-      console.log(name);
       var portal = r.feed.portals[name];
       var last_entry = portal.feed[portal.feed.length-1];
       var is_active = last_entry ? Math.floor((new Date() - last_entry.timestamp) / 1000) : 999999;
@@ -84,6 +83,11 @@ function Feed(feed_urls)
     return archive.readFile('portal.json')
       .then((portal_data) => {
         var portal = JSON.parse(portal_data);
+        // append slash to port entry so that .indexOf works correctly in other parts (e.g ~runes)
+        portal.port = portal.port.map(function(portal_entry) {
+          if (portal_entry.slice(-1) !== "/") { portal_entry += "/";}
+          return portal_entry
+        })
         this.portals[portal.name] = portal;
         return portal.feed
           .filter((entry) => {
@@ -99,7 +103,10 @@ function Feed(feed_urls)
               seed: portal.port.indexOf(r.portal.data.dat) > -1
             })
           ))
-      });
+      })
+      .catch((e) => {
+          console.error("Error reading remote portal.json; malformed json?", e);
+      })
   }
 
   this.debounced_sort_refresh = debounce(function(entries)
@@ -125,6 +132,8 @@ function Feed(feed_urls)
       if(c > 40){ break; }
       c += 1;
     }
+
+    html += "<div class='entry'><t class='portal'>$rotonde</t><t class='timestamp'>Just now</t><hr/><t class='message' style='font-style:italic'>Welcome to #rotonde, a decentralized social network. Share your dat:// url with others and add theirs into the input bar to get started.</t></div>"
     this.el.innerHTML = html;
   }
 }
